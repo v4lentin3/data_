@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from cabecalhos import *  # Certifique-se de que este módulo existe e está corretamente configurado.
 
 # Configurações da página
 st.set_page_config(
