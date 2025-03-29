@@ -35,13 +35,26 @@ if data_file is not None:
     except Exception as e:
         st.error(f"Erro ao carregar o arquivo CSV: {e}")
         df = None
-
+#################
+    if 'Palavra-chave' in df.columns:
+        global_target = 'Palavra-chave'
+        df = df.iloc[:-3]
+    elif 'Termo de pesquisa' in df.columns:
+        global_target = 'Termo de pesquisa'
+        df = df.iloc[:-4]
 # if df is not None:
     # Exibe as primeiras 20 linhas da tabela
     
+    colunas_para_converter = ['Conversões', 'Custo / conv.', 'Custo', 'CPC méd.', 'Cliques']
 
+    for col in colunas_para_converter:
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            df[col] = df[col].str.replace(',', '.').str.strip()
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    
     # Seleciona a coluna alvo para análise univariada
-    target_column = st.sidebar.selectbox("Selecione a coluna alvo:", [None] + list(df.drop('Termo de pesquisa', axis=1).columns))
+    target_column = st.sidebar.selectbox("Selecione a coluna alvo:", [None] + list(df.columns))
 
     if target_column is not None:  
         col1.title(f"Análise Univariada de {target_column}")
@@ -65,7 +78,7 @@ if data_file is not None:
             df_filtered = df[(df[target_column] >= minimo_input1) & (df[target_column] <= maximo_input1)]
 
             # Seleciona uma variável adicional para filtro
-            additional_variable = st.sidebar.selectbox("Selecione a variável adicional para filtrar:", df.drop(['Termo de pesquisa', target_column], axis=1).columns.tolist())
+            additional_variable = st.sidebar.selectbox("Selecione a variável adicional para filtrar:", df.drop([global_target, target_column], axis=1).columns.tolist())
             
             # Verifica se a variável adicional é numérica
             if df[additional_variable].dtype in ['float64', 'int64']:
@@ -87,19 +100,24 @@ if data_file is not None:
             else:
                 # Filtro para a variável adicional se não for numérica
                 unique_values = df[additional_variable].unique()
+                unique_values = ["Todos"] + list(unique_values)  # Adiciona a opção "Todos"
+
                 selected_value = st.sidebar.selectbox("Selecione o valor para filtrar:", unique_values)
-                
+
                 # Aplica o filtro adicional ao dataframe
-                df_filtered = df_filtered[df_filtered[additional_variable] == selected_value]
+                if selected_value == "Todos":
+                    df_filtered = df
+                else:
+                    df_filtered = df[df[additional_variable] == selected_value]
 
             # Exibe o histograma dos dados filtrados
             col1.plotly_chart(px.histogram(df_filtered, x=target_column, title=f'Histograma de {target_column} (filtrado)'), use_container_width=True)
         # Cria um novo DataFrame com as colunas que você deseja exibir
-            df_to_display = df_filtered[['Termo de pesquisa', target_column, additional_variable]]
+            df_to_display = df_filtered[[global_target, target_column, additional_variable]]
 
             # Exibe o DataFrame filtrado
             col2.write(df_to_display)
-            csv = df_to_display['Termo de pesquisa'].to_csv(index=False, header=False).encode('utf-8')
+            csv = df_to_display[global_target].to_csv(index=False, header=False).encode('utf-8')
             st.download_button(
                 label="Baixar Termos de Pesquisa",
                 data=csv,
@@ -113,9 +131,14 @@ if data_file is not None:
 
             if selected_category is not None:
                 df_filtered = df[df[target_column] == selected_category]
-                counts = df_filtered[target_column].value_counts().reset_index()
-                counts.drop('Termo de pesquisa', axis=1).columns = [target_column, 'Count']
-                col1.plotly_chart(px.bar(counts, x=target_column, y='Count', title=f'Gráfico de Frequência de {target_column} (filtrado)'), use_container_width=True)
+                df_to_display = df_filtered[[target_column,'Campanha','Tipo de corresp.', 'Conversões', 'Custo / conv.', 'Custo', 'CPC méd.', 'Cliques']]
+                minimo_table = st.sidebar.number_input(f"Selecione o tamanho da tabela para {selected_category}", min_value=20, step=5)
+                # Exibe o DataFrame filtrado
+    
+                st.table(df_to_display.head(minimo_table))
+                # counts = df_filtered[target_column].value_counts().reset_index()
+                # counts.columns = [target_column, 'Count']
+                # col1.plotly_chart(px.bar(counts, x=target_column, y='Count', title=f'Gráfico de Frequência de {target_column} (filtrado)'), use_container_width=True)
     else:
         st.table(df.head(20))
  
