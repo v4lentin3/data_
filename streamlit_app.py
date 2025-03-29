@@ -63,8 +63,8 @@ if data_file is not None:
         if df[target_column].dtype == 'float64':
             # Exibe estatísticas descritivas
             # Limites para filtragem
-            maximo1 = df[target_column].max()
-            minimo1 = df[target_column].min()
+            maximo1 = float(df[target_column].max())
+            minimo1 = float(df[target_column].min())
 
             # Inputs para mínimo e máximo da coluna principal
             minimo_input1 = st.sidebar.number_input("Selecione o mínimo da coluna principal", min_value=minimo1, max_value=maximo1-0.01, value=minimo1, step=0.01)
@@ -83,8 +83,8 @@ if data_file is not None:
             # Verifica se a variável adicional é numérica
             if df[additional_variable].dtype in ['float64', 'int64']:
                 # Limites para filtragem da variável adicional
-                maximo2 = df[additional_variable].max()
-                minimo2 = df[additional_variable].min()
+                maximo2 = float(df[additional_variable].max())
+                minimo2 = float(df[additional_variable].min())
                 
                 # Inputs para mínimo e máximo da variável adicional
                 minimo_input2 = st.sidebar.number_input(f"Selecione o mínimo para {additional_variable}", min_value=minimo2, max_value=maximo2-0.01, value=minimo2, step=0.01)
@@ -99,16 +99,16 @@ if data_file is not None:
             
             else:
                 # Filtro para a variável adicional se não for numérica
-                unique_values = df[additional_variable].unique()
+                unique_values = df_filtered[additional_variable].unique()
                 unique_values = ["Todos"] + list(unique_values)  # Adiciona a opção "Todos"
 
                 selected_value = st.sidebar.selectbox("Selecione o valor para filtrar:", unique_values)
 
                 # Aplica o filtro adicional ao dataframe
                 if selected_value == "Todos":
-                    df_filtered = df
+                    df_filtered = df_filtered.copy()
                 else:
-                    df_filtered = df[df[additional_variable] == selected_value]
+                    df_filtered = df_filtered[df_filtered[additional_variable] == selected_value]
 
             # Exibe o histograma dos dados filtrados
             col1.plotly_chart(px.histogram(df_filtered, x=target_column, title=f'Histograma de {target_column} (filtrado)'), use_container_width=True)
